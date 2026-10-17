@@ -1,25 +1,22 @@
-import { create } from 'zustand';
+import { Platform } from 'react-native';
+import MrdjMidi from '../../modules/mrdj-midi';
+import { handleMidiBytes, useMidiStore } from './core';
 
-/**
- * Native builds: MIDI over USB/Bluetooth needs a native module (CoreMIDI /
- * android.media.midi) that is not part of this first version.
- */
-export interface MidiState {
-  supported: boolean;
-  devices: string[];
-  learning: string | null;
-  mappings: Record<string, string>;
-  init: () => Promise<void>;
-  learn: (targetId: string | null) => void;
-  clear: () => void;
+/** iOS / Android: bytes come from the native mrdj-midi module (CoreMIDI / android.media.midi). */
+export const useMidi = useMidiStore;
+
+let started = false;
+
+export async function initMidi() {
+  if (started || !MrdjMidi) return;
+  if (!MrdjMidi.isSupported()) return;
+  started = true;
+  useMidiStore.setState({ supported: true, bluetoothPairing: Platform.OS === 'ios' });
+  MrdjMidi.addListener('onMessage', (e) => handleMidiBytes(e.data));
+  MrdjMidi.addListener('onDevicesChanged', (e) => useMidiStore.setState({ devices: e.devices }));
+  useMidiStore.setState({ devices: MrdjMidi.start() });
 }
 
-export const useMidi = create<MidiState>()(() => ({
-  supported: false,
-  devices: [],
-  learning: null,
-  mappings: {},
-  init: async () => {},
-  learn: () => {},
-  clear: () => {},
-}));
+export function pairBluetoothMidi() {
+  return MrdjMidi?.showBluetoothPairing();
+}

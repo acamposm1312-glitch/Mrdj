@@ -1,0 +1,9 @@
+{
+  "name": "mrdj-midi",
+  "version": "1.0.0",
+  "description": "Native MIDI input for MrDj (CoreMIDI on iOS, android.media.midi on Android)",
+  "license": "MIT",
+  "author": "MrDj",
+  "homepage": "https://github.com/acamposm1312-glitch/Mrdj",
+  "main": "index.ts"
+}

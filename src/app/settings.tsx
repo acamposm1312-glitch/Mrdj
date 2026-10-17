@@ -3,7 +3,7 @@ import { router, Stack } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEngine } from '../audio/engine';
-import { useMidi } from '../midi/midi';
+import { pairBluetoothMidi, useMidi } from '../midi/midi';
 import { buildTargets } from '../midi/targets';
 import { Lang, useSettings, useT } from '../state/settings';
 import { colors } from '../ui/theme';
@@ -75,6 +75,11 @@ export default function Settings() {
               </Pressable>
             ))}
           </View>
+          {midi.bluetoothPairing && (
+            <Pressable style={styles.button} onPress={() => pairBluetoothMidi()}>
+              <Text style={styles.buttonText}>{t.midiBluetooth}</Text>
+            </Pressable>
+          )}
           <Pressable style={styles.button} onPress={midi.clear}>
             <Text style={styles.buttonText}>Reset MIDI</Text>
           </Pressable>

@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEngine } from '../audio/engine';
 import { saveAndShareRecording } from '../library/storage';
-import { useMidi } from '../midi/midi';
+import { initMidi } from '../midi/midi';
 import { useSettings, useT } from '../state/settings';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../ui/components/controls';
@@ -60,7 +60,7 @@ export default function Console() {
   const [layerR, setLayerR] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === 'web') useMidi.getState().init().catch(() => {});
+    initMidi().catch(() => {});
   }, []);
 
   const left = fourDecks && layerL ? 2 : 0;
