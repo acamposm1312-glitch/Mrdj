@@ -69,11 +69,20 @@ export default function Console() {
   useKeyboardShortcuts(left, right);
   const W = width - insets.left - insets.right - 12;
   const landscape = width > height && width >= 640;
-  const channels = fourDecks && landscape && W >= 1000 ? [2, 0, 1, 3] : [left, right];
+  // phones held sideways: fit the whole console on one screen
+  const compact = landscape && height < 520;
+  const channels = fourDecks && landscape && !compact && W >= 1000 ? [2, 0, 1, 3] : [left, right];
+  const headerH = compact ? 34 : 44;
+  const waveH = compact ? 22 : landscape ? Math.min(54, Math.max(36, height * 0.08)) : 46;
+  // height left for the decks row when everything must fit on one screen
+  const bodyH = height - insets.top - insets.bottom - headerH - (waveH * 2 + 3) - 14;
 
   let deckW: number;
   let mixerW: number;
-  if (landscape) {
+  if (compact) {
+    mixerW = Math.min(240, Math.max(224, W * 0.3));
+    deckW = (W - mixerW - 8) / 2;
+  } else if (landscape) {
     mixerW = Math.min(channels.length > 2 ? 470 : 330, W * 0.36);
     deckW = (W - mixerW - 12) / 2;
   } else {
@@ -84,8 +93,8 @@ export default function Console() {
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingLeft: insets.left + 6, paddingRight: insets.right + 6 }]}>
       <LinearGradient colors={['#14141f', '#08080d', '#050508']} style={StyleSheet.absoluteFill} />
-      <View style={styles.header}>
-        <Text style={styles.logo}>
+      <View style={[styles.header, compact && { paddingVertical: 2, height: headerH }]}>
+        <Text style={[styles.logo, compact && { fontSize: 18 }]}>
           Mr<Text style={{ color: colors.accent }}>Dj</Text>
         </Text>
         {fourDecks && (
@@ -104,27 +113,37 @@ export default function Console() {
         </Pressable>
         <RecButton />
         <Pressable testID="open-library" onPress={() => setLibraryOpen(true)} style={[styles.hBtn, { borderColor: colors.accent }]}>
-          <Text style={styles.hBtnText}>♫ {t.library}</Text>
+          <Text style={styles.hBtnText}>♫{compact ? '' : ` ${t.library}`}</Text>
         </Pressable>
         <Pressable testID="open-settings" onPress={() => router.push('/settings')} style={styles.hBtn}>
           <Text style={styles.hBtnText}>⚙</Text>
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ gap: 6, paddingBottom: insets.bottom + 10 }} showsVerticalScrollIndicator={false}>
-        <View style={{ gap: 3 }}>
+      <ScrollView
+        contentContainerStyle={{ gap: compact ? 4 : 6, paddingBottom: insets.bottom + (compact ? 2 : 10) }}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!compact}
+      >
+        <View style={{ gap: compact ? 2 : 3 }}>
           {[left, right].map((i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={[styles.waveLabel, { color: deckColors[i] }]}>{deckLetters[i]}</Text>
               <Screen style={{ flex: 1 }}>
-                <ScrollingWaveform deck={engine.decks[i]} color={deckColors[i]} height={landscape ? Math.min(54, Math.max(36, height * 0.08)) : 46} />
+                <ScrollingWaveform deck={engine.decks[i]} color={deckColors[i]} height={waveH} />
               </Screen>
             </View>
           ))}
         </View>
 
-        <View style={view3d ? styles.tilt : undefined}>
-        {landscape ? (
+        <View style={view3d && !compact ? styles.tilt : undefined}>
+        {compact ? (
+          <View style={[styles.rowTop, { gap: 4 }]}>
+            <DeckView index={left} otherIndex={right} width={deckW} compact height={bodyH} />
+            <MixerView channels={channels} width={mixerW} compact height={bodyH} />
+            <DeckView index={right} otherIndex={left} width={deckW} mirror compact height={bodyH} />
+          </View>
+        ) : landscape ? (
           <View style={styles.rowTop}>
             <DeckView index={left} otherIndex={right} width={deckW} maxJog={Math.max(120, height * 0.42)} />
             <MixerView channels={channels} width={mixerW} faderLen={Math.max(90, Math.min(150, height - 520))} />

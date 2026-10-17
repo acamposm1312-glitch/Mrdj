@@ -6,13 +6,32 @@ import { Fader, Knob, Panel, PressButton } from './components/controls';
 import { VuMeter } from './components/JogWheel';
 import { colors, deckColors, deckLetters } from './theme';
 
-function Channel({ index, width, faderLen }: { index: number; width: number; faderLen: number }) {
+function Channel({ index, width, faderLen, compact }: { index: number; width: number; faderLen: number; compact?: boolean }) {
   const engine = useEngine();
   const t = useT();
   const d = engine.decks[index];
   const color = deckColors[index];
   const ks = Math.max(30, Math.min(42, width * 0.5));
   const nextAssign = { A: 'THRU', THRU: 'B', B: 'A' } as const;
+  if (compact) {
+    const k = 26;
+    return (
+      <View style={[styles.channel, { width, paddingVertical: 4, gap: 2 }]}>
+        <View style={styles.grid}>
+          <Knob testID={`eq-high-${index}`} value={d.eq.high} onChange={(v) => d.setEq('high', v)} size={k} color={color} label={t.high} />
+          <Knob testID={`trim-${index}`} value={d.trim} onChange={(v) => d.setTrim(v)} size={k} color={colors.dim} label={t.trim} />
+          <Knob testID={`eq-mid-${index}`} value={d.eq.mid} onChange={(v) => d.setEq('mid', v)} size={k} color={color} label={t.mid} />
+          <Knob testID={`filter-${index}`} value={d.filter} onChange={(v) => d.setFilter(v)} size={k} color={colors.accent} label="FLT" />
+          <Knob testID={`eq-low-${index}`} value={d.eq.low} onChange={(v) => d.setEq('low', v)} size={k} color={color} label={t.low} />
+          <PressButton testID={`pfl-${index}`} label="🎧" color={colors.cue} active={d.pfl} onPress={() => d.setPfl(!d.pfl)} style={{ width: k + 4, height: k, minHeight: 0, marginTop: 2 }} textSize={11} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, height: faderLen }}>
+          <VuMeter level={() => d.level()} height={faderLen - 10} width={5} />
+          <Fader testID={`volume-${index}`} value={d.volume} onChange={(v) => d.setVolume(v)} length={faderLen} thickness={28} color={color} defaultValue={0.8} ticks={5} />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={[styles.channel, { width }]}>
       <Text style={[styles.chLabel, { color }]}>{deckLetters[index]}</Text>
@@ -46,9 +65,57 @@ function Channel({ index, width, faderLen }: { index: number; width: number; fad
   );
 }
 
-export function MixerView({ channels, width, faderLen = 120 }: { channels: number[]; width: number; faderLen?: number }) {
+export function MixerView({
+  channels,
+  width,
+  faderLen = 120,
+  compact,
+  height,
+}: {
+  channels: number[];
+  width: number;
+  faderLen?: number;
+  compact?: boolean;
+  height?: number;
+}) {
   const engine = useEngine();
   const t = useT();
+  if (compact) {
+    const masterW = 64;
+    const chW = Math.max(66, (width - masterW - 12 - 4 * channels.length) / channels.length);
+    const stripH = (height ?? 240) - 8 - 30 - 4;
+    const fl = Math.max(44, stripH - 3 * 41 - 12);
+    const half = Math.ceil(channels.length / 2);
+    return (
+      <Panel style={[styles.mixer, { width, padding: 5, paddingTop: 6, gap: 4 }]} screws={false}>
+        <View style={[styles.strips, { gap: 4, height: stripH }]}>
+          {channels.slice(0, half).map((i) => (
+            <Channel key={i} index={i} width={chW} faderLen={fl} compact />
+          ))}
+          <View style={[styles.master, { width: masterW, gap: 3, paddingVertical: 2 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Knob testID="master" value={engine.masterVolume} min={0} max={1} bipolar={false} defaultValue={0.85} onChange={(v) => engine.setMasterVolume(v)} size={34} color={colors.text} label="MST" />
+              <VuMeter level={() => engine.masterLevel()} height={40} width={5} />
+            </View>
+            <Knob value={engine.cueMix} min={0} max={1} bipolar={false} defaultValue={0} onChange={(v) => engine.setCueMix(v)} size={26} color={colors.cue} label={t.cueMix} />
+            <Knob value={engine.headphoneVolume} min={0} max={1} bipolar={false} defaultValue={0.85} onChange={(v) => engine.setHeadphoneVolume(v)} size={26} color={colors.cue} label="🎧 VOL" />
+            <PressButton testID="split-cue" label="SPLIT" color={colors.cue} active={engine.splitCue} onPress={() => engine.setSplitCue(!engine.splitCue)} style={{ alignSelf: 'stretch', minHeight: 0, height: 22 }} textSize={8} />
+            <PressButton label={engine.xfCurve === 'smooth' ? '⌒XF' : '⊓XF'} color={colors.accent} active={engine.xfCurve === 'sharp'} onPress={() => engine.setXfCurve(engine.xfCurve === 'smooth' ? 'sharp' : 'smooth')} style={{ alignSelf: 'stretch', minHeight: 0, height: 22 }} textSize={8} />
+          </View>
+          {channels.slice(half).map((i) => (
+            <Channel key={i} index={i} width={chW} faderLen={fl} compact />
+          ))}
+        </View>
+        <View style={[styles.xfRow, { paddingVertical: 0, height: 30 }]}>
+          <Text style={[styles.xfLabel, { color: deckColors[0], fontSize: 12 }]}>A</Text>
+          <View style={{ flex: 1 }}>
+            <Fader testID="crossfader" vertical={false} value={(engine.crossfader + 1) / 2} onChange={(v) => engine.setCrossfader(v * 2 - 1)} thickness={28} center defaultValue={0.5} color={colors.text} ticks={7} />
+          </View>
+          <Text style={[styles.xfLabel, { color: deckColors[1], fontSize: 12 }]}>B</Text>
+        </View>
+      </Panel>
+    );
+  }
   const masterW = Math.max(70, Math.min(96, width * 0.22));
   const chW = Math.max(52, (width - masterW - 16 - 6 * channels.length) / channels.length);
   const left = channels.slice(0, Math.ceil(channels.length / 2));
@@ -129,6 +196,7 @@ const styles = StyleSheet.create({
   master: { alignItems: 'center', gap: 5, paddingVertical: 6 },
   chLabel: { color: colors.dim, fontWeight: '900', fontSize: 11, letterSpacing: 1 },
   small: { color: colors.dim, fontSize: 9, fontWeight: '700' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', width: 64, justifyContent: 'space-between', rowGap: 1 },
   sep: { height: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 2 },
   xfRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingVertical: 4, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 10 },
   xfLabel: { fontWeight: '900', fontSize: 14 },
