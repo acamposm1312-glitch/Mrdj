@@ -7,6 +7,7 @@ import { useLibrary } from '../library/library';
 import type { Track } from '../library/types';
 import { matchTrack } from '../spotify/spotify';
 import { useSettings, useT } from '../state/settings';
+import { router } from 'expo-router';
 import { formatTime } from './components/JogWheel';
 import { colors, deckColors, deckLetters, mono } from './theme';
 
@@ -27,6 +28,7 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
   const [query, setQuery] = useState('');
   const [crateId, setCrateId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
   const loadTargets = fourDecks ? [0, 1, 2, 3] : decks;
 
   // the camelot key of whatever is playing guides harmonic suggestions
@@ -58,11 +60,12 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
   }, [tracks, crates, crateId, query]);
 
   const load = async (deck: number, track: Track) => {
+    setLoadError('');
     try {
       await getEngine().load(deck, track);
       onClose();
-    } catch (e) {
-      console.warn(e);
+    } catch (e: any) {
+      setLoadError(e?.message === 'drive-auth' ? t.driveExpired : String(e?.message ?? e));
     }
   };
 
@@ -74,6 +77,16 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
             <Text style={styles.h1}>{t.library}</Text>
             <Text style={styles.count}>{tracks.length}</Text>
             <View style={{ flex: 1 }} />
+            <Pressable
+              testID="library-drive"
+              style={[styles.btn, { backgroundColor: '#ffffff' }]}
+              onPress={() => {
+                onClose();
+                router.push('/drive');
+              }}
+            >
+              <Text style={[styles.btnText, { color: '#1f1f1f' }]}>☁ Drive</Text>
+            </Pressable>
             <Pressable testID="import" style={[styles.btn, { backgroundColor: colors.accent }]} onPress={() => pickAndImport()}>
               <Text style={styles.btnText}>＋ {t.import}</Text>
             </Pressable>
@@ -92,6 +105,8 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
               </View>
             </View>
           )}
+
+          {!!loadError && <Text style={{ color: colors.rec, fontSize: 12 }}>{loadError}</Text>}
 
           <TextInput
             value={query}
@@ -126,6 +141,7 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
                 <View style={[styles.row, !tr && { opacity: 0.55 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.title} numberOfLines={1}>
+                      {tr?.driveFileId ? (tr.cached ? '☁✓ ' : '☁ ') : ''}
                       {item.title}
                     </Text>
                     <Text style={styles.artist} numberOfLines={1}>

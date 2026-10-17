@@ -25,6 +25,8 @@ export default function RootLayout() {
           <Stack.Screen name="settings" />
           <Stack.Screen name="spotify" />
           <Stack.Screen name="spotify-auth" options={{ headerShown: false }} />
+          <Stack.Screen name="drive" />
+          <Stack.Screen name="drive-auth" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

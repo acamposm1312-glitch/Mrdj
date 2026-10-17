@@ -3,13 +3,14 @@ import { router, Stack } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEngine } from '../audio/engine';
+import { useLibrary } from '../library/library';
 import { pairBluetoothMidi, useMidi } from '../midi/midi';
 import { buildTargets } from '../midi/targets';
 import { Lang, useSettings, useT } from '../state/settings';
 import { SHORTCUTS } from '../ui/keyboard';
 import { colors } from '../ui/theme';
 
-function Segmented<T extends string | boolean>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
+function Segmented<T extends string | boolean | number>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
     <View style={styles.seg}>
       {options.map(([v, label]) => (
@@ -26,6 +27,8 @@ export default function Settings() {
   const engine = useEngine();
   const { lang, setLang, fourDecks, setFourDecks } = useSettings();
   const midi = useMidi();
+  const { cacheLimitMB, setCacheLimit, clearCache } = useLibrary();
+  const cacheUsed = useLibrary((s) => s.tracks.reduce((sum, x) => sum + (x.driveFileId && x.cached ? x.size ?? 0 : 0), 0));
   const targets = useMemo(() => (midi.supported ? buildTargets() : []), [midi.supported]);
   const mappedIds = new Set(Object.values(midi.mappings));
 
@@ -45,6 +48,24 @@ export default function Settings() {
       <Text style={styles.h2}>{t.headphones}</Text>
       <Segmented<boolean> value={engine.splitCue} onChange={(v) => engine.setSplitCue(v)} options={[[false, t.off], [true, t.splitCue]]} />
       <Text style={styles.help}>{t.splitCueHelp}</Text>
+
+      <Text style={styles.h2}>{t.drive}</Text>
+      <Text style={styles.help}>{t.driveIntro}</Text>
+      <Pressable testID="open-drive" style={[styles.button, { backgroundColor: '#ffffff' }]} onPress={() => router.push('/drive')}>
+        <Text style={[styles.buttonText, { color: '#1f1f1f' }]}>{t.drive} →</Text>
+      </Pressable>
+      <Text style={styles.h2}>{t.driveCache}</Text>
+      <Text style={styles.help}>
+        {t.driveCacheHelp} {t.driveCacheUsed}: {(cacheUsed / 1048576).toFixed(0)} MB / {cacheLimitMB >= 1024 ? `${cacheLimitMB / 1024} GB` : `${cacheLimitMB} MB`}
+      </Text>
+      <Segmented<number>
+        value={cacheLimitMB}
+        onChange={setCacheLimit}
+        options={[[512, '0,5 GB'], [1024, '1 GB'], [2048, '2 GB'], [5120, '5 GB']]}
+      />
+      <Pressable style={styles.button} onPress={() => clearCache()}>
+        <Text style={styles.buttonText}>{t.driveCacheClear}</Text>
+      </Pressable>
 
       <Text style={styles.h2}>{t.spotify}</Text>
       <Text style={styles.help}>{t.spotifyIntro}</Text>

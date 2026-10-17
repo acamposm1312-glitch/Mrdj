@@ -37,6 +37,15 @@ export async function saveAudio(id: string, picked: PickedAudio): Promise<void> 
   await tx('audio', 'readwrite', (s) => s.put(blob, id));
 }
 
+export async function saveAudioBytes(id: string, bytes: ArrayBuffer): Promise<void> {
+  await tx('audio', 'readwrite', (s) => s.put(new Blob([bytes]), id));
+}
+
+/** Removes only the audio, keeping the analysis (used by the Drive cache). */
+export async function deleteAudioFile(id: string): Promise<void> {
+  await tx('audio', 'readwrite', (s) => s.delete(id));
+}
+
 export async function readAudio(id: string): Promise<ArrayBuffer> {
   const blob = await tx<Blob | undefined>('audio', 'readonly', (s) => s.get(id));
   if (!blob) throw new Error('audio not found');

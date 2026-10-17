@@ -123,6 +123,13 @@ export class MixerEngine {
     });
   };
 
+  private audioSource: (track: Track) => Promise<ArrayBuffer> = (track) => readAudio(track.id);
+
+  /** Where track audio comes from (local storage, or the Drive cache). */
+  setAudioSource(fn: (track: Track) => Promise<ArrayBuffer>) {
+    this.audioSource = fn;
+  }
+
   setCuePersistence(c: CuePersistence) {
     this.cues = c;
   }
@@ -154,7 +161,7 @@ export class MixerEngine {
     this.emit();
     try {
       this.resume();
-      const bytes = await readAudio(track.id);
+      const bytes = await this.audioSource(track);
       const buffer = await this.ctx.decodeAudioData(bytes);
       const cues = this.cues?.get(track.id);
       this.savedCueRefs.set(deckIndex, cues?.hotCues);

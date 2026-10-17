@@ -35,6 +35,18 @@ export async function saveAudio(id: string, picked: PickedAudio): Promise<void> 
   await new File(picked.uri).copy(dest);
 }
 
+export async function saveAudioBytes(id: string, bytes: ArrayBuffer): Promise<void> {
+  const dest = audioFile(id);
+  if (dest.exists) dest.delete();
+  await dest.write(new Uint8Array(bytes));
+}
+
+/** Removes only the audio, keeping the analysis (used by the Drive cache). */
+export async function deleteAudioFile(id: string): Promise<void> {
+  const f = audioFile(id);
+  if (f.exists) f.delete();
+}
+
 export async function readAudio(id: string): Promise<ArrayBuffer> {
   const bytes = await audioFile(id).bytes();
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;

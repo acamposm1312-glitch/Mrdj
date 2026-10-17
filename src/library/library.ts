@@ -5,7 +5,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { analyzeChannels } from '../audio/analysis';
 import type { HotCue } from '../audio/Deck';
 import { getEngine } from '../audio/engine';
-import { deleteAudio, loadJSON, PickedAudio, readAudio, saveAudio, saveJSON } from './storage';
+import { downloadFile, type DriveFile } from '../drive/drive';
+import { deleteAudio, deleteAudioFile, loadJSON, PickedAudio, readAudio, saveAudio, saveAudioBytes, saveJSON } from './storage';
 import type { Crate, Track, Waveform } from './types';
 
 type Cues = { cuePoint: number; hotCues: (HotCue | null)[] };
@@ -28,6 +29,14 @@ interface LibraryState {
   saveCrate: (crate: Crate) => void;
   removeCrate: (id: string) => void;
   setCues: (trackId: string, cues: Cues) => void;
+  /** Google Drive cache budget in MB */
+  cacheLimitMB: number;
+  setCacheLimit: (mb: number) => void;
+  importFromDrive: (files: DriveFile[]) => Promise<Track[]>;
+  /** Makes sure a Drive track's audio is on the device (downloads it if evicted). */
+  ensureAudio: (track: Track) => Promise<void>;
+  enforceCache: () => Promise<void>;
+  clearCache: () => Promise<void>;
 }
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -53,9 +62,9 @@ export async function getWaveform(id: string): Promise<Waveform | null> {
   return w;
 }
 
-async function analyzeTrack(id: string) {
+async function analyzeTrack(id: string, bytes?: ArrayBuffer) {
   const ctx = getEngine().ctx;
-  const buffer = await ctx.decodeAudioData(await readAudio(id));
+  const buffer = await ctx.decodeAudioData(bytes ?? (await readAudio(id)));
   const channels: Float32Array[] = [];
   for (let c = 0; c < Math.min(2, buffer.numberOfChannels); c++) channels.push(buffer.getChannelData(c));
   const { analysis, waveform } = await analyzeChannels(channels, buffer.sampleRate);
@@ -156,17 +165,116 @@ export const useLibrary = create<LibraryState>()(
       removeCrate: (id) => set((s) => ({ crates: s.crates.filter((c) => c.id !== id) })),
 
       setCues: (trackId, cues) => set((s) => ({ cues: { ...s.cues, [trackId]: cues } })),
+
+      cacheLimitMB: 1024,
+      setCacheLimit: (cacheLimitMB) => {
+        set({ cacheLimitMB });
+        get().enforceCache();
+      },
+
+      importFromDrive: async (files) => {
+        const added: Track[] = [];
+        const known = new Set(get().tracks.map((t) => t.driveFileId).filter(Boolean));
+        const todo = files.filter((f) => !f.isFolder && !known.has(f.id));
+        set({ progress: { total: todo.length, done: 0, current: '' } });
+        try {
+          for (const f of todo) {
+            const id = newId();
+            const { artist, title } = parseFileName(f.name);
+            set((s) => ({ progress: { ...s.progress!, current: title } }));
+            const bytes = await downloadFile(f.id);
+            // decoding transfers/detaches the buffer on some platforms: store a copy first
+            await saveAudioBytes(id, bytes.slice(0));
+            let track: Track = {
+              id,
+              title,
+              artist,
+              fileName: f.name,
+              addedAt: Date.now(),
+              analyzed: false,
+              bpm: 0,
+              firstBeat: 0,
+              key: '',
+              camelot: '',
+              duration: 0,
+              driveFileId: f.id,
+              size: f.size || bytes.byteLength,
+              cached: true,
+              lastUsed: Date.now(),
+            };
+            set((s) => ({ tracks: [track, ...s.tracks] }));
+            try {
+              track = { ...track, ...(await analyzeTrack(id, bytes)), analyzed: true };
+            } catch (e) {
+              console.warn('analysis failed', f.name, e);
+            }
+            set((s) => ({
+              tracks: s.tracks.map((t) => (t.id === id ? track : t)),
+              progress: { ...s.progress!, done: s.progress!.done + 1 },
+            }));
+            added.push(track);
+            // keep the cache under budget while importing a whole folder
+            await get().enforceCache();
+          }
+        } finally {
+          set({ progress: null });
+        }
+        return added;
+      },
+
+      ensureAudio: async (track) => {
+        const now = Date.now();
+        const current = get().tracks.find((t) => t.id === track.id) ?? track;
+        if (current.driveFileId && !current.cached) {
+          const bytes = await downloadFile(current.driveFileId);
+          await saveAudioBytes(current.id, bytes);
+          get().updateTrack(current.id, { cached: true, size: bytes.byteLength, lastUsed: now });
+          await get().enforceCache();
+        } else {
+          set((s) => ({ tracks: s.tracks.map((t) => (t.id === track.id ? { ...t, lastUsed: now } : t)) }));
+        }
+      },
+
+      enforceCache: async () => {
+        const limit = get().cacheLimitMB * 1024 * 1024;
+        const onDecks = new Set(getEngine().decks.map((d) => d.track?.id).filter(Boolean));
+        const cached = get().tracks.filter((t) => t.driveFileId && t.cached);
+        let used = cached.reduce((sum, t) => sum + (t.size ?? 0), 0);
+        // least recently used first; never evict what is loaded on a deck
+        const victims = cached.filter((t) => !onDecks.has(t.id)).sort((a, b) => (a.lastUsed ?? 0) - (b.lastUsed ?? 0));
+        for (const t of victims) {
+          if (used <= limit) break;
+          await deleteAudioFile(t.id);
+          used -= t.size ?? 0;
+          set((s) => ({ tracks: s.tracks.map((x) => (x.id === t.id ? { ...x, cached: false } : x)) }));
+        }
+      },
+
+      clearCache: async () => {
+        const onDecks = new Set(getEngine().decks.map((d) => d.track?.id).filter(Boolean));
+        for (const t of get().tracks) {
+          if (t.driveFileId && t.cached && !onDecks.has(t.id)) {
+            await deleteAudioFile(t.id);
+            set((s) => ({ tracks: s.tracks.map((x) => (x.id === t.id ? { ...x, cached: false } : x)) }));
+          }
+        }
+      },
     }),
     {
       name: 'mrdj-library',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ tracks: s.tracks, crates: s.crates, cues: s.cues }),
+      partialize: (s) => ({ tracks: s.tracks, crates: s.crates, cues: s.cues, cacheLimitMB: s.cacheLimitMB }),
     },
   ),
 );
 
 /** Wire hot-cue persistence into the audio engine once at startup. */
 export function connectCuePersistence() {
+  // Drive tracks may need a download before they can be decoded
+  getEngine().setAudioSource(async (track) => {
+    await useLibrary.getState().ensureAudio(track);
+    return readAudio(track.id);
+  });
   getEngine().setCuePersistence({
     get: (id) => useLibrary.getState().cues[id],
     set: (id, cues) => useLibrary.getState().setCues(id, cues),

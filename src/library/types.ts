@@ -24,6 +24,13 @@ export interface Track extends Analysis {
   addedAt: number;
   spotifyId?: string;
   analyzed: boolean;
+  /** Google Drive file this track streams from (audio is cached, not kept forever). */
+  driveFileId?: string;
+  /** audio bytes, for the cache budget */
+  size?: number;
+  /** whether the audio is currently on this device */
+  cached?: boolean;
+  lastUsed?: number;
 }
 
 export interface Crate {
