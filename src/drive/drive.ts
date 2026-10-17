@@ -13,6 +13,8 @@ export const GOOGLE_DISCOVERY = {
   tokenEndpoint: 'https://oauth2.googleapis.com/token',
 };
 export const CLIENT_ID_RE = /^[\w-]+\.apps\.googleusercontent\.com$/;
+/** MrDj's own OAuth web client (public identifier, not a secret). */
+export const DEFAULT_CLIENT_ID = '419328411556-36371bic0plaf3gkc8f8k5dog2vu24ti.apps.googleusercontent.com';
 
 interface DriveAuth {
   clientId: string;

@@ -6,6 +6,7 @@ import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, Tex
 import {
   CLIENT_ID_RE,
   DRIVE_SCOPES,
+  DEFAULT_CLIENT_ID,
   DriveAuthError,
   DriveFile,
   findStartFolder,
@@ -29,8 +30,10 @@ export default function DriveScreen() {
   const auth = useDriveAuth();
   const connected = !!auth.accessToken && Date.now() < auth.expiresAt;
   const redirectUri = AuthSession.makeRedirectUri({ scheme: 'mrdj', path: 'drive-auth' });
-  const [draftId, setDraftId] = useState(auth.clientId);
+  const [draftId, setDraftId] = useState(auth.clientId || DEFAULT_CLIENT_ID);
   const idValid = CLIENT_ID_RE.test(draftId.trim());
+  const clientId = auth.clientId || DEFAULT_CLIENT_ID;
+  const [advanced, setAdvanced] = useState(false);
   const [path, setPath] = useState<{ id: string; name: string }[]>([]);
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [busy, setBusy] = useState(false);
@@ -41,7 +44,7 @@ export default function DriveScreen() {
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
-      clientId: auth.clientId || 'missing',
+      clientId,
       scopes: DRIVE_SCOPES,
       responseType: AuthSession.ResponseType.Token,
       usePKCE: false,
@@ -113,35 +116,39 @@ export default function DriveScreen() {
       {!connected ? (
         <View style={styles.body}>
           <Text style={styles.help}>{t.driveIntro}</Text>
-          <Text style={styles.label}>{t.driveClientId}</Text>
-          <TextInput
-            value={draftId}
-            onChangeText={setDraftId}
-            onBlur={() => auth.setClientId(draftId)}
-            placeholder="123456-abc.apps.googleusercontent.com"
-            placeholderTextColor={colors.faint}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.input}
-          />
-          {!!draftId && !idValid && <Text style={styles.error}>{t.driveBadId}</Text>}
-          <Text style={styles.help}>
-            {t.driveClientIdHelp}
-            {'\n'}
-            <Text style={{ color: colors.text }} selectable>
-              {typeof location !== 'undefined' ? location.origin : ''}
-            </Text>
-            {'\n'}
-            {t.driveRedirect}{' '}
-            <Text style={{ color: colors.text }} selectable>
-              {redirectUri}
-            </Text>
-          </Text>
+          {advanced && (
+            <>
+              <Text style={styles.label}>{t.driveClientId}</Text>
+              <TextInput
+                value={draftId}
+                onChangeText={setDraftId}
+                onBlur={() => auth.setClientId(draftId)}
+                placeholder="123456-abc.apps.googleusercontent.com"
+                placeholderTextColor={colors.faint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+              {!!draftId && !idValid && <Text style={styles.error}>{t.driveBadId}</Text>}
+              <Text style={styles.help}>
+                {t.driveClientIdHelp}
+                {'\n'}
+                <Text style={{ color: colors.text }} selectable>
+                  {typeof location !== 'undefined' ? location.origin : ''}
+                </Text>
+                {'\n'}
+                {t.driveRedirect}{' '}
+                <Text style={{ color: colors.text }} selectable>
+                  {redirectUri}
+                </Text>
+              </Text>
+            </>
+          )}
           <Pressable
             testID="drive-connect"
             disabled={!idValid || !request}
             onPress={() => {
-              auth.setClientId(draftId);
+              if (advanced) auth.setClientId(draftId === DEFAULT_CLIENT_ID ? '' : draftId);
               promptAsync();
             }}
             style={[styles.google, (!idValid || !request) && { opacity: 0.4 }]}
@@ -149,6 +156,9 @@ export default function DriveScreen() {
             <Text style={styles.googleText}>{t.driveConnect}</Text>
           </Pressable>
           {!!error && <Text style={styles.error}>{error}</Text>}
+          <Pressable onPress={() => setAdvanced(!advanced)}>
+            <Text style={[styles.help, { color: colors.faint }]}>{t.driveAdvanced}</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
