@@ -111,7 +111,12 @@ export default function SpotifyScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: open ? open.name : 'Spotify' }} />
-      {!connected ? (
+      {SANDBOXED ? (
+        <View style={styles.body}>
+          <Text style={styles.help}>{t.spotifyIntro}</Text>
+          <Text style={styles.error}>{t.spotifySandboxed}</Text>
+        </View>
+      ) : !connected ? (
         <View style={styles.body}>
           <Text style={styles.help}>{t.spotifyIntro}</Text>
           <Text style={styles.label}>{t.spotifyClientId}</Text>
@@ -129,14 +134,13 @@ export default function SpotifyScreen() {
             {t.spotifyClientIdHelp} <Text style={{ color: colors.text }} selectable>{redirectUri}</Text>
           </Text>
           {!!draftId && !idValid && <Text style={styles.error}>{t.spotifyBadId}</Text>}
-          {SANDBOXED && <Text style={styles.error}>{t.spotifySandboxed}</Text>}
           <Pressable
-            disabled={!idValid || !request || SANDBOXED}
+            disabled={!idValid || !request}
             onPress={() => {
               setSpotifyClientId(draftId);
               promptAsync();
             }}
-            style={[styles.green, (!idValid || !request || SANDBOXED) && { opacity: 0.4 }]}
+            style={[styles.green, (!idValid || !request) && { opacity: 0.4 }]}
           >
             <Text style={styles.greenText}>{t.connect}</Text>
           </Pressable>
