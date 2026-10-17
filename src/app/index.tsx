@@ -13,6 +13,7 @@ import { Screen } from '../ui/components/controls';
 import { ScrollingWaveform } from '../ui/components/Waveform';
 import { DeckView } from '../ui/DeckView';
 import { LibraryPanel } from '../ui/LibraryPanel';
+import { useKeyboardShortcuts } from '../ui/keyboard';
 import { MixerView } from '../ui/MixerView';
 import { colors, deckColors, deckLetters } from '../ui/theme';
 
@@ -65,6 +66,7 @@ export default function Console() {
 
   const left = fourDecks && layerL ? 2 : 0;
   const right = fourDecks && layerR ? 3 : 1;
+  useKeyboardShortcuts(left, right);
   const W = width - insets.left - insets.right - 12;
   const landscape = width > height && width >= 640;
   const channels = fourDecks && landscape && W >= 1000 ? [2, 0, 1, 3] : [left, right];

@@ -1,0 +1,18 @@
+{
+  "name": "MrDj – Consola DJ",
+  "short_name": "MrDj",
+  "description": "Consola de DJ profesional: decks, sync, hot cues, loops, efectos y MIDI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07070D",
+  "theme_color": "#07070D",
+  "lang": "es",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
