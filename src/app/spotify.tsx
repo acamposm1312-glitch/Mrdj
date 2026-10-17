@@ -76,11 +76,11 @@ export default function SpotifyScreen() {
     try {
       await fn();
     } catch (e: any) {
-      setError(String(e?.message ?? e));
+      setError(e?.status === 403 ? t.spotifyNotOwned : String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (connected && spotifyClientId) run(async () => setPlaylists(await getPlaylists(spotifyClientId)));
@@ -149,11 +149,11 @@ export default function SpotifyScreen() {
       ) : !open ? (
         <FlatList
           contentContainerStyle={styles.body}
-          data={[{ id: LIKED, name: t.likedSongs, total: 0 } as SpotifyPlaylist, ...playlists]}
+          data={[{ id: LIKED, name: t.likedSongs, total: 0, readable: true } as SpotifyPlaylist, ...playlists]}
           keyExtractor={(p) => p.id}
           ListHeaderComponent={
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={[styles.help, { flex: 1 }]}>✓ {t.connected}</Text>
+              <Text style={[styles.help, { flex: 1 }]}>✓ {t.connected} · {t.spotifyOwnedHint}</Text>
               <Pressable onPress={auth.clear}>
                 <Text style={[styles.help, { color: colors.rec }]}>{t.disconnect}</Text>
               </Pressable>
@@ -170,6 +170,7 @@ export default function SpotifyScreen() {
               <Text style={styles.title} numberOfLines={1}>
                 {item.name}
               </Text>
+              {!item.readable && <Text style={[styles.meta, styles.badge]}>{t.spotifyFollowed}</Text>}
               {item.total > 0 && <Text style={styles.meta}>{item.total}</Text>}
               <Text style={styles.meta}>›</Text>
             </Pressable>
@@ -236,6 +237,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.panel3 },
   title: { color: colors.text, fontWeight: '700', flexShrink: 1 },
   meta: { color: colors.dim, fontSize: 11 },
+  badge: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden' },
   load: { width: 32, height: 32, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   button: { backgroundColor: colors.panel3, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   buttonText: { color: colors.text, fontWeight: '800' },

@@ -76,6 +76,8 @@ export interface SpotifyPlaylist {
   name: string;
   image?: string;
   total: number;
+  /** Development-mode apps can only read the songs of playlists the user owns or collaborates on. */
+  readable: boolean;
 }
 
 export interface SpotifyTrack {
@@ -92,6 +94,7 @@ interface Page<T> {
 
 export async function getPlaylists(clientId: string): Promise<SpotifyPlaylist[]> {
   const out: SpotifyPlaylist[] = [];
+  const me: { id: string } = await api(clientId, '/me');
   let url: string | null = '/me/playlists?limit=50';
   while (url && out.length < 500) {
     const page: Page<any> = await api(clientId, url);
@@ -102,11 +105,13 @@ export async function getPlaylists(clientId: string): Promise<SpotifyPlaylist[]>
         name: p.name,
         image: p.images?.[0]?.url,
         total: p.items?.total ?? p.tracks?.total ?? 0,
+        readable: p.owner?.id === me.id || !!p.collaborative,
       });
     }
     url = page.next;
   }
-  return out;
+  // own playlists first: those are the ones Spotify lets us read
+  return out.sort((a, b) => Number(b.readable) - Number(a.readable));
 }
 
 function toTrack(t: any): SpotifyTrack | null {

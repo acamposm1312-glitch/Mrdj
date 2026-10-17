@@ -50,6 +50,10 @@ export const es = {
   spotifyClientId: 'Client ID de Spotify',
   spotifyClientIdHelp: 'Créalo gratis en developer.spotify.com → Dashboard → Create app. Redirect URI:',
   connect: 'Conectar con Spotify',
+  spotifyFollowed: 'Seguida',
+  spotifyOwnedHint: 'Spotify solo deja leer tus propias playlists y tus Me gusta.',
+  spotifyNotOwned:
+    'Spotify no permite leer las canciones de playlists de otros usuarios. Truco: en la app de Spotify abre esta playlist, selecciona todas las canciones y agrégalas a una playlist nueva tuya; esa sí se podrá importar.',
   spotifyBadId: 'El Client ID es un código de 32 letras y números (developer.spotify.com → tu app → Settings). No es el nombre de la app.',
   spotifySandboxed: 'En esta vista previa web Spotify no puede conectarse. Usa la app de Android/iPhone o la versión web publicada.',
   disconnect: 'Desconectar',
@@ -149,6 +153,10 @@ export const en: Strings = {
   spotifyClientId: 'Spotify Client ID',
   spotifyClientIdHelp: 'Create one for free at developer.spotify.com → Dashboard → Create app. Redirect URI:',
   connect: 'Connect Spotify',
+  spotifyFollowed: 'Followed',
+  spotifyOwnedHint: 'Spotify only lets apps read your own playlists and Liked Songs.',
+  spotifyNotOwned:
+    "Spotify doesn't allow reading songs from other users' playlists. Tip: in the Spotify app, open this playlist, select all songs and add them to a new playlist of your own; that one can be imported.",
   spotifyBadId: 'The Client ID is a 32-character code (developer.spotify.com → your app → Settings), not the app name.',
   spotifySandboxed: 'Spotify cannot connect from this web preview. Use the Android/iPhone app or the published web version.',
   disconnect: 'Disconnect',
