@@ -1,17 +1,25 @@
 {
   "expo": {
-    "name": "mrdj",
+    "name": "MrDj",
     "slug": "mrdj",
+    "scheme": "mrdj",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07070D",
+    "splash": {
+      "backgroundColor": "#07070D"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "requireFullScreen": false,
+      "bundleIdentifier": "cl.mrdj.app"
     },
     "android": {
+      "package": "cl.mrdj.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#07070D",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +27,16 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "MrDj"
+    },
+    "plugins": [
+      "react-native-audio-api",
+      "expo-web-browser",
+      "expo-localization",
+      "expo-sharing",
+      "expo-router"
+    ]
   }
 }
