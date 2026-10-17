@@ -9,6 +9,8 @@ interface SettingsState {
   lang: Lang;
   fourDecks: boolean;
   spotifyClientId: string;
+  view3d: boolean;
+  setView3d: (v: boolean) => void;
   setLang: (lang: Lang) => void;
   setFourDecks: (v: boolean) => void;
   setSpotifyClientId: (id: string) => void;
@@ -20,6 +22,8 @@ export const useSettings = create<SettingsState>()(
       lang: 'es',
       fourDecks: false,
       spotifyClientId: '',
+      view3d: false,
+      setView3d: (view3d) => set({ view3d }),
       setLang: (lang) => set({ lang }),
       setFourDecks: (fourDecks) => set({ fourDecks }),
       setSpotifyClientId: (spotifyClientId) => set({ spotifyClientId: spotifyClientId.trim() }),

@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useEngine } from '../audio/engine';
 import { useT } from '../state/settings';
-import { Fader, Knob, PressButton } from './components/controls';
+import { Fader, Knob, Panel, PressButton } from './components/controls';
 import { VuMeter } from './components/JogWheel';
 import { colors, deckColors, deckLetters } from './theme';
 
@@ -54,7 +54,7 @@ export function MixerView({ channels, width, faderLen = 120 }: { channels: numbe
   const left = channels.slice(0, Math.ceil(channels.length / 2));
   const right = channels.slice(Math.ceil(channels.length / 2));
   return (
-    <View style={[styles.mixer, { width }]}>
+    <Panel style={[styles.mixer, { width }]}>
       <View style={styles.strips}>
         {left.map((i) => (
           <Channel key={i} index={i} width={chW} faderLen={faderLen} />
@@ -108,18 +108,28 @@ export function MixerView({ channels, width, faderLen = 120 }: { channels: numbe
         </View>
         <Text style={[styles.xfLabel, { color: deckColors[1] }]}>B</Text>
       </View>
-    </View>
+    </Panel>
   );
 }
 
 const styles = StyleSheet.create({
-  mixer: { backgroundColor: colors.panel, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 8, gap: 8 },
+  mixer: { padding: 10, paddingTop: 14, gap: 8 },
   strips: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  channel: { alignItems: 'center', gap: 4, backgroundColor: colors.panel2, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 4 },
+  channel: {
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.5)',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
   master: { alignItems: 'center', gap: 5, paddingVertical: 6 },
   chLabel: { color: colors.dim, fontWeight: '900', fontSize: 11, letterSpacing: 1 },
   small: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   sep: { height: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 2 },
-  xfRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
+  xfRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingVertical: 4, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 10 },
   xfLabel: { fontWeight: '900', fontSize: 14 },
 });

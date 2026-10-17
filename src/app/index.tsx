@@ -8,6 +8,8 @@ import { useEngine } from '../audio/engine';
 import { saveAndShareRecording } from '../library/storage';
 import { useMidi } from '../midi/midi';
 import { useSettings, useT } from '../state/settings';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Screen } from '../ui/components/controls';
 import { ScrollingWaveform } from '../ui/components/Waveform';
 import { DeckView } from '../ui/DeckView';
 import { LibraryPanel } from '../ui/LibraryPanel';
@@ -51,6 +53,8 @@ export default function Console() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const fourDecks = useSettings((s) => s.fourDecks);
+  const view3d = useSettings((s) => s.view3d);
+  const setView3d = useSettings((s) => s.setView3d);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [layerL, setLayerL] = useState(false);
   const [layerR, setLayerR] = useState(false);
@@ -77,6 +81,7 @@ export default function Console() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingLeft: insets.left + 6, paddingRight: insets.right + 6 }]}>
+      <LinearGradient colors={['#14141f', '#08080d', '#050508']} style={StyleSheet.absoluteFill} />
       <View style={styles.header}>
         <Text style={styles.logo}>
           Mr<Text style={{ color: colors.accent }}>Dj</Text>
@@ -92,6 +97,9 @@ export default function Console() {
           </View>
         )}
         <View style={{ flex: 1 }} />
+        <Pressable testID="view3d" onPress={() => setView3d(!view3d)} style={[styles.hBtn, view3d && { borderColor: colors.accent, backgroundColor: `${colors.accent}33` }]}>
+          <Text style={styles.hBtnText}>3D</Text>
+        </Pressable>
         <RecButton />
         <Pressable testID="open-library" onPress={() => setLibraryOpen(true)} style={[styles.hBtn, { borderColor: colors.accent }]}>
           <Text style={styles.hBtnText}>♫ {t.library}</Text>
@@ -106,13 +114,14 @@ export default function Console() {
           {[left, right].map((i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={[styles.waveLabel, { color: deckColors[i] }]}>{deckLetters[i]}</Text>
-              <View style={{ flex: 1 }}>
+              <Screen style={{ flex: 1 }}>
                 <ScrollingWaveform deck={engine.decks[i]} color={deckColors[i]} height={landscape ? Math.min(54, Math.max(36, height * 0.08)) : 46} />
-              </View>
+              </Screen>
             </View>
           ))}
         </View>
 
+        <View style={view3d ? styles.tilt : undefined}>
         {landscape ? (
           <View style={styles.rowTop}>
             <DeckView index={left} otherIndex={right} width={deckW} maxJog={Math.max(120, height * 0.42)} />
@@ -128,6 +137,7 @@ export default function Console() {
             <MixerView channels={channels} width={mixerW} />
           </>
         )}
+        </View>
       </ScrollView>
 
       <LibraryPanel visible={libraryOpen} onClose={() => setLibraryOpen(false)} decks={[left, right]} />
@@ -138,7 +148,21 @@ export default function Console() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 },
-  logo: { color: colors.text, fontSize: 22, fontWeight: '900', fontStyle: 'italic', letterSpacing: -0.5, marginRight: 6 },
+  logo: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    letterSpacing: -0.5,
+    marginRight: 6,
+    textShadowColor: colors.accent,
+    textShadowRadius: 12,
+    textShadowOffset: { width: 0, height: 0 },
+  },
+  tilt: {
+    transform: [{ perspective: 1600 }, { rotateX: '14deg' }, { scale: 0.88 }],
+    transformOrigin: 'center top',
+  },
   hBtn: {
     flexDirection: 'row',
     alignItems: 'center',

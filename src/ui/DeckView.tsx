@@ -6,7 +6,7 @@ import { useEngine } from '../audio/engine';
 import { FX_BEATS, FX_TYPES, FxType } from '../audio/fx';
 import { useLibrary } from '../library/library';
 import { useT } from '../state/settings';
-import { Fader, Knob, PressButton } from './components/controls';
+import { Fader, Knob, Panel, PressButton, Screen } from './components/controls';
 import { JogWheel } from './components/JogWheel';
 import { OverviewWaveform } from './components/Waveform';
 import { colors, deckColors, deckLetters, hotCueColors, mono } from './theme';
@@ -40,12 +40,12 @@ export function DeckView({
 
   const track = deck.track;
   const faderW = 34;
-  const jogSize = Math.max(110, Math.min(width - faderW - 24, maxJog));
+  const jogSize = Math.max(110, Math.min(width - faderW - 30, maxJog));
   const narrow = width < 300;
   const harmonic = !!track && !!other.track && isHarmonic(track.camelot, other.track.camelot);
   const tempoPct = (deck.rate - 1) * 100;
   const isMaster = engine.masterIndex === index;
-  const padW = Math.floor((width - 20 - 3 * 5) / 4);
+  const padW = Math.floor((width - 24 - 3 * 5) / 4);
   const padH = Math.max(34, Math.min(52, padW * 0.7));
 
   const tap = () => {
@@ -66,24 +66,24 @@ export function DeckView({
   };
 
   const pads: React.ReactNode[] = [];
-  const pad = (key: string, label: string, c: string, onPress: () => void, active = false, onRelease?: () => void, dim = false) =>
+  const pad = (key: string, label: string, c: string, onPress: () => void, active = false, armed = false, dim = false) =>
     pads.push(
       <PressButton
         key={key}
         label={label}
         color={c}
         active={active}
+        armed={armed}
         dim={dim}
         onPress={onPress}
-        onRelease={onRelease}
-        style={{ width: padW, height: padH }}
+        style={{ width: padW, height: padH, borderRadius: 7 }}
         textSize={padW < 50 ? 10 : 12}
       />,
     );
 
   if (tab === 'cues') {
     deck.hotCues.forEach((hc, i) =>
-      pad(`h${i}`, `${i + 1}`, hotCueColors[i], () => (shift ? deck.clearHotCue(i) : deck.hotCue(i)), !!hc, undefined, !track),
+      pad(`h${i}`, `${i + 1}`, hotCueColors[i], () => (shift ? deck.clearHotCue(i) : deck.hotCue(i)), false, !!hc, !track),
     );
   } else if (tab === 'loop') {
     [1, 2, 4, 8].forEach((b) =>
@@ -103,9 +103,9 @@ export function DeckView({
   }
 
   return (
-    <View style={[styles.deck, { width, borderColor: `${color}55` }]}>
-      {/* header */}
-      <View style={styles.header}>
+    <Panel style={[styles.deck, { width }]} accent={color}>
+      {/* info display */}
+      <Screen style={styles.header}>
         <View style={[styles.badge, { backgroundColor: color }]}>
           <Text style={styles.badgeText}>{deckLetters[index]}</Text>
         </View>
@@ -125,9 +125,11 @@ export function DeckView({
             {track?.camelot ? `${track.camelot} · ${track.key}` : ' '}
           </Text>
         </View>
-      </View>
+      </Screen>
 
-      <OverviewWaveform deck={deck} color={color} />
+      <Screen>
+        <OverviewWaveform deck={deck} color={color} />
+      </Screen>
 
       {/* jog + pitch */}
       <View style={[styles.mid, { flexDirection: mirror ? 'row-reverse' : 'row' }]}>
@@ -178,6 +180,7 @@ export function DeckView({
             deck.cueDown();
           }}
           onRelease={() => deck.cueUp()}
+          round
           style={[styles.transport]}
           textSize={14}
         />
@@ -187,6 +190,7 @@ export function DeckView({
           color={colors.play}
           active={deck.playing}
           onPress={() => engine.togglePlay(index)}
+          round
           style={[styles.transport]}
           textSize={18}
         />
@@ -215,7 +219,7 @@ export function DeckView({
       ) : (
         <View style={styles.pads}>{pads}</View>
       )}
-    </View>
+    </Panel>
   );
 }
 
@@ -293,14 +297,8 @@ function FxPanel({ deckIndex, width }: { deckIndex: number; width: number }) {
 }
 
 const styles = StyleSheet.create({
-  deck: {
-    backgroundColor: colors.panel,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 8,
-    gap: 6,
-  },
-  header: { flexDirection: 'row', alignItems: 'center' },
+  deck: { padding: 10, paddingTop: 12, gap: 7 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 6 },
   badge: { width: 22, height: 22, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#07070D', fontWeight: '900', fontSize: 13 },
   title: { color: colors.text, fontWeight: '700', fontSize: 12 },
@@ -313,7 +311,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 5 },
   rowWrap: { flexDirection: 'row', gap: 4 },
   flexBtn: { flex: 1, minHeight: 26, height: 26 },
-  transport: { flex: 1.2, height: 54, borderRadius: 27 },
+  transport: { flex: 1.2, height: 56 },
   tabs: { flexDirection: 'row', gap: 4 },
   tab: { flex: 1, minHeight: 24, height: 24 },
   pads: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
