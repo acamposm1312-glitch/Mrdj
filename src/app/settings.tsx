@@ -6,7 +6,7 @@ import { useEngine } from '../audio/engine';
 import { useLibrary } from '../library/library';
 import { pairBluetoothMidi, useMidi } from '../midi/midi';
 import { buildTargets } from '../midi/targets';
-import { Lang, useSettings, useT } from '../state/settings';
+import { Lang, Layout, useSettings, useT } from '../state/settings';
 import { SHORTCUTS } from '../ui/keyboard';
 import { colors } from '../ui/theme';
 
@@ -25,7 +25,7 @@ function Segmented<T extends string | boolean | number>({ value, options, onChan
 export default function Settings() {
   const t = useT();
   const engine = useEngine();
-  const { lang, setLang, fourDecks, setFourDecks } = useSettings();
+  const { lang, setLang, fourDecks, setFourDecks, layout, setLayout } = useSettings();
   const midi = useMidi();
   const { cacheLimitMB, setCacheLimit, clearCache } = useLibrary();
   const cacheUsed = useLibrary((s) => s.tracks.reduce((sum, x) => sum + (x.driveFileId && x.cached ? x.size ?? 0 : 0), 0));
@@ -41,6 +41,10 @@ export default function Settings() {
 
       <Text style={styles.h2}>{t.decks}</Text>
       <Segmented<boolean> value={fourDecks} onChange={setFourDecks} options={[[false, t.twoDecks], [true, t.fourDecks]]} />
+
+      <Text style={styles.h2}>{t.layout}</Text>
+      <Segmented<Layout> value={layout} onChange={setLayout} options={[['classic', t.layoutClassic], ['pro', t.layoutPro]]} />
+      <Text style={styles.help}>{t.layoutHelp}</Text>
 
       <Text style={styles.h2}>{t.xfCurve}</Text>
       <Segmented value={engine.xfCurve} onChange={(v) => engine.setXfCurve(v)} options={[['smooth', t.smooth], ['sharp', t.sharp]]} />

@@ -71,12 +71,15 @@ export function MixerView({
   faderLen = 120,
   compact,
   height,
+  sampler,
 }: {
   channels: number[];
   width: number;
   faderLen?: number;
   compact?: boolean;
   height?: number;
+  /** show the sampler volume knob */
+  sampler?: boolean;
 }) {
   const engine = useEngine();
   const t = useT();
@@ -100,7 +103,11 @@ export function MixerView({
             <Knob value={engine.cueMix} min={0} max={1} bipolar={false} defaultValue={0} onChange={(v) => engine.setCueMix(v)} size={26} color={colors.cue} label={t.cueMix} />
             <Knob value={engine.headphoneVolume} min={0} max={1} bipolar={false} defaultValue={0.85} onChange={(v) => engine.setHeadphoneVolume(v)} size={26} color={colors.cue} label="🎧 VOL" />
             <PressButton testID="split-cue" label="SPLIT" color={colors.cue} active={engine.splitCue} onPress={() => engine.setSplitCue(!engine.splitCue)} style={{ alignSelf: 'stretch', minHeight: 0, height: 22 }} textSize={8} />
-            <PressButton label={engine.xfCurve === 'smooth' ? '⌒XF' : '⊓XF'} color={colors.accent} active={engine.xfCurve === 'sharp'} onPress={() => engine.setXfCurve(engine.xfCurve === 'smooth' ? 'sharp' : 'smooth')} style={{ alignSelf: 'stretch', minHeight: 0, height: 22 }} textSize={8} />
+            {sampler ? (
+              <Knob value={engine.sampler.volume} min={0} max={1} bipolar={false} defaultValue={0.7} onChange={(v) => { engine.sampler.setVolume(v); engine.emit(); }} size={26} color={colors.fx} label="SMP" />
+            ) : (
+              <PressButton label={engine.xfCurve === 'smooth' ? '⌒XF' : '⊓XF'} color={colors.accent} active={engine.xfCurve === 'sharp'} onPress={() => engine.setXfCurve(engine.xfCurve === 'smooth' ? 'sharp' : 'smooth')} style={{ alignSelf: 'stretch', minHeight: 0, height: 22 }} textSize={8} />
+            )}
           </View>
           {channels.slice(half).map((i) => (
             <Channel key={i} index={i} width={chW} faderLen={fl} compact />
@@ -146,6 +153,9 @@ export function MixerView({
             textSize={8}
           />
           <View style={styles.sep} />
+          {sampler && (
+            <Knob value={engine.sampler.volume} min={0} max={1} bipolar={false} defaultValue={0.7} onChange={(v) => { engine.sampler.setVolume(v); engine.emit(); }} size={36} color={colors.fx} label={t.sampler} />
+          )}
           <PressButton
             label={engine.xfCurve === 'smooth' ? '⌒ XF' : '⊓ XF'}
             color={colors.accent}

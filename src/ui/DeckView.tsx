@@ -4,6 +4,7 @@ import { bpmFromTaps, isHarmonic } from '../audio/analysis';
 import { TEMPO_RANGES } from '../audio/Deck';
 import { useEngine } from '../audio/engine';
 import { FX_BEATS, FX_TYPES, FxType } from '../audio/fx';
+import { SAMPLES } from '../audio/sampler';
 import { useLibrary } from '../library/library';
 import { useT } from '../state/settings';
 import { Fader, Knob, Panel, PressButton, Screen } from './components/controls';
@@ -11,7 +12,9 @@ import { JogWheel } from './components/JogWheel';
 import { OverviewWaveform } from './components/Waveform';
 import { colors, deckColors, deckLetters, hotCueColors, mono } from './theme';
 
-type Tab = 'cues' | 'loop' | 'beat' | 'fx';
+type Tab = 'cues' | 'loop' | 'beat' | 'smp' | 'fx';
+
+const sampleColors = ['#F59E0B', '#3B82F6', '#8B5CF6', '#22C55E', '#EF4444', '#F97316', '#06B6D4', '#EC4899'];
 
 const loopLabel = (b: number) => (b < 1 ? `1/${Math.round(1 / b)}` : `${b}`);
 
@@ -71,7 +74,7 @@ export function DeckView({
   };
 
   const pads: React.ReactNode[] = [];
-  const pad = (key: string, label: string, c: string, onPress: () => void, active = false, armed = false, dim = false) =>
+  const pad = (key: string, label: string, c: string, onPress: () => void, active = false, armed = false, dim = false, solid = false) =>
     pads.push(
       <PressButton
         key={key}
@@ -80,6 +83,7 @@ export function DeckView({
         active={active}
         armed={armed}
         dim={dim}
+        solid={solid}
         onPress={onPress}
         style={{ width: padW, height: padH, borderRadius: 7 }}
         textSize={padW < 50 ? 10 : 12}
@@ -105,14 +109,16 @@ export function DeckView({
     pad('bd', `BPM${t.double}`, colors.accent, () => deck.bpm && deck.setBpmOverride(deck.bpm * 2));
     pad('tap', t.tapTempo, colors.accent, tap);
     pad('grid', 'GRID', colors.accent, setGridHere);
+  } else if (tab === 'smp') {
+    SAMPLES.forEach((s, i) => pad(s, t.samples[s], sampleColors[i], () => engine.sampler.trigger(s), false, false, false, true));
   }
 
   if (compact) {
     const H = Math.max(96, (height ?? 240) - 6 * 2 - 24 - 30 - 8);
     const colW = 58;
     const jog = Math.max(80, Math.min(H, width - 12 - faderW - colW - 12));
-    const tabs: Tab[] = ['cues', 'loop', 'beat', 'fx'];
-    const tabLabel: Record<Tab, string> = { cues: t.cue, loop: t.loop, beat: t.beatJump, fx: t.fx };
+    const tabs: Tab[] = ['cues', 'loop', 'beat', 'smp', 'fx'];
+    const tabLabel: Record<Tab, string> = { cues: t.cue, loop: t.loop, beat: t.beatJump, smp: 'SMP', fx: t.fx };
     const fx = deck.fx;
     const cpad = (key: string, label: string, c: string, onPress: () => void, active = false, armed = false) => (
       <PressButton key={key} label={label} color={c} active={active} armed={armed} dim={!track} onPress={onPress} style={styles.cpad} textSize={10} />
@@ -133,6 +139,10 @@ export function DeckView({
         : [1, 2, 4, 8].map((b) => cpad(`l${b}`, `${b}`, colors.loop, () => deck.autoLoop(b), !!deck.loop?.active && deck.loop.beats === b));
     } else if (tab === 'beat') {
       row = (shift ? [-16, -8, 8, 16] : [-4, -1, 1, 4]).map((j) => cpad(`j${j}`, j > 0 ? `+${j}` : `${j}`, colors.sync, () => deck.beatJump(j)));
+    } else if (tab === 'smp') {
+      row = SAMPLES.slice(shift ? 4 : 0, shift ? 8 : 4).map((s) => (
+        <PressButton key={s} label={t.samples[s]} color={sampleColors[SAMPLES.indexOf(s)]} solid onPress={() => engine.sampler.trigger(s)} style={styles.cpad} textSize={8} />
+      ));
     } else {
       const names: Record<FxType, string> = { echo: 'ECHO', reverb: 'REV', flanger: 'FLNG', filter: 'FILT', crush: 'CRSH' };
       row = [
@@ -299,6 +309,7 @@ export function DeckView({
             ['cues', narrow ? t.cue : t.hotCue],
             ['loop', t.loop],
             ['beat', t.beatJump],
+            ['smp', narrow ? 'SMP' : t.sampler],
             ['fx', t.fx],
           ] as [Tab, string][]
         ).map(([k, label]) => (

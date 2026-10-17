@@ -13,6 +13,7 @@ import type { Track } from '../library/types';
 import { Deck, HotCue } from './Deck';
 import { makeLimiterCurve } from './fx';
 import { MasterRecorder } from './recorder';
+import { Sampler } from './sampler';
 
 export type XfCurve = 'smooth' | 'sharp';
 
@@ -28,6 +29,7 @@ export interface CuePersistence {
 export class MixerEngine {
   readonly ctx: AudioContext;
   readonly decks: Deck[];
+  readonly sampler: Sampler;
   private masterBus: GainNode;
   private limiter: WaveShaperNode;
   private masterGain: GainNode;
@@ -98,6 +100,7 @@ export class MixerEngine {
       d.cueNode.connect(this.cueBus);
       return d;
     });
+    this.sampler = new Sampler(ctx, this.masterBus);
     this.recorder = new MasterRecorder(ctx, this.masterGain);
     this.applyCrossfader();
     this.applyMaster();

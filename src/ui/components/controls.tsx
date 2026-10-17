@@ -82,6 +82,8 @@ interface PressButtonProps {
   style?: StyleProp<ViewStyle>;
   textSize?: number;
   filled?: boolean;
+  /** saturated colour pad, always lit (sampler / set hot cues) */
+  solid?: boolean;
   round?: boolean;
   children?: React.ReactNode;
   testID?: string;
@@ -100,6 +102,7 @@ export function PressButton({
   style,
   textSize = 12,
   filled,
+  solid,
   round,
   children,
   testID,
@@ -118,7 +121,11 @@ export function PressButton({
     },
   });
   const lit = active || down;
-  const bg: readonly [string, string, ...string[]] = lit
+  const bg: readonly [string, string, ...string[]] = solid
+    ? lit
+      ? [shade(color, 0.5), shade(color, 0.2), color]
+      : [shade(color, 0.08), shade(color, -0.18), shade(color, -0.4)]
+    : lit
     ? filled
       ? [shade(color, 0.25), color, shade(color, -0.25)]
       : [alpha(color, 0.5), alpha(color, 0.26), alpha(color, 0.18)]
@@ -127,7 +134,7 @@ export function PressButton({
       : down
         ? metal.rubberPressed
         : metal.rubber;
-  const textColor = filled && lit ? '#08080F' : lit ? '#ffffff' : armed ? shade(color, 0.3) : color;
+  const textColor = solid ? '#ffffff' : filled && lit ? '#08080F' : lit ? '#ffffff' : armed ? shade(color, 0.3) : color;
   const flat = StyleSheet.flatten(style) || {};
   const radius = round ? 999 : (flat.borderRadius as number) ?? 9;
   return (
@@ -152,7 +159,7 @@ export function PressButton({
             {
               borderRadius: radius,
               borderWidth: 1.5,
-              borderColor: lit ? shade(color, 0.2) : armed ? alpha(color, 0.6) : '#3a3a4e',
+              borderColor: solid ? shade(color, lit ? 0.6 : 0.15) : lit ? shade(color, 0.2) : armed ? alpha(color, 0.6) : '#3a3a4e',
               borderBottomColor: lit ? shade(color, -0.3) : '#0a0a0f',
             },
           ]}

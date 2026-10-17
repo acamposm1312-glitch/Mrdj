@@ -11,6 +11,7 @@ import { useSettings, useT } from '../state/settings';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../ui/components/controls';
 import { ScrollingWaveform } from '../ui/components/Waveform';
+import { ClassicDeck } from '../ui/ClassicDeck';
 import { DeckView } from '../ui/DeckView';
 import { LibraryPanel } from '../ui/LibraryPanel';
 import { useKeyboardShortcuts } from '../ui/keyboard';
@@ -56,6 +57,7 @@ export default function Console() {
   const fourDecks = useSettings((s) => s.fourDecks);
   const view3d = useSettings((s) => s.view3d);
   const setView3d = useSettings((s) => s.setView3d);
+  const layout = useSettings((s) => s.layout);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [layerL, setLayerL] = useState(false);
   const [layerR, setLayerR] = useState(false);
@@ -90,6 +92,73 @@ export default function Console() {
     mixerW = W;
   }
 
+  const layerButtons = fourDecks && (
+    <View style={{ flexDirection: 'row', gap: 4 }}>
+      <Pressable onPress={() => setLayerL(!layerL)} style={[styles.hBtn, { borderColor: deckColors[left] }]}>
+        <Text style={[styles.hBtnText, { color: deckColors[left] }]}>{layerL ? 'C' : 'A'}↔{layerL ? 'A' : 'C'}</Text>
+      </Pressable>
+      <Pressable onPress={() => setLayerR(!layerR)} style={[styles.hBtn, { borderColor: deckColors[right] }]}>
+        <Text style={[styles.hBtnText, { color: deckColors[right] }]}>{layerR ? 'D' : 'B'}↔{layerR ? 'B' : 'D'}</Text>
+      </Pressable>
+    </View>
+  );
+
+  const waves = (h: number) => (
+    <View style={{ gap: 2 }}>
+      {[left, right].map((i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={[styles.waveLabel, { color: deckColors[i] }]}>{deckLetters[i]}</Text>
+          <Screen style={{ flex: 1 }}>
+            <ScrollingWaveform deck={engine.decks[i]} color={deckColors[i]} height={h} />
+          </Screen>
+        </View>
+      ))}
+    </View>
+  );
+
+  if (landscape && layout === 'classic') {
+    // classic DJ-app layout: platters at the sides, mixer and app buttons in the middle
+    const wh = compact ? 20 : Math.min(48, Math.max(30, height * 0.055));
+    // the waveform screens add a few px of bezel each
+    const h = height - insets.top - insets.bottom - (wh * 2 + 2) - 4 - 6 - 12;
+    const mixW = compact ? Math.min(240, Math.max(224, W * 0.3)) : Math.min(channels.length > 2 ? 470 : 340, W * 0.3);
+    const dW = (W - mixW - 8) / 2;
+    const barH = compact ? 28 : 34;
+    return (
+      <View style={[styles.root, { paddingTop: insets.top + 2, paddingBottom: insets.bottom + 4, paddingLeft: insets.left + 6, paddingRight: insets.right + 6, gap: 4 }]}>
+        <LinearGradient colors={['#14141f', '#08080d', '#050508']} style={StyleSheet.absoluteFill} />
+        {waves(wh)}
+        <View style={[styles.rowTop, { gap: 4, height: h }]}>
+          <ClassicDeck index={left} otherIndex={right} width={dW} height={h} />
+          <View style={{ width: mixW, gap: 4 }}>
+            <View style={[styles.header, { height: barH, paddingVertical: 0, gap: 4, justifyContent: 'center' }]}>
+              {!fourDecks && (
+                <Text style={[styles.logo, { fontSize: compact ? 17 : 22, marginRight: 2 }]}>
+                  Mr<Text style={{ color: colors.accent }}>Dj</Text>
+                </Text>
+              )}
+              {layerButtons}
+              <RecButton />
+              <Pressable testID="open-library" onPress={() => setLibraryOpen(true)} style={[styles.hBtn, { borderColor: colors.accent, paddingHorizontal: 8 }]}>
+                <Text style={styles.hBtnText}>♫</Text>
+              </Pressable>
+              <Pressable testID="open-settings" onPress={() => router.push('/settings')} style={[styles.hBtn, { paddingHorizontal: 8 }]}>
+                <Text style={styles.hBtnText}>⚙</Text>
+              </Pressable>
+            </View>
+            {compact ? (
+              <MixerView channels={channels} width={mixW} compact height={h - barH - 4} sampler />
+            ) : (
+              <MixerView channels={channels} width={mixW} faderLen={Math.max(70, Math.min(260, h - barH - 470))} sampler />
+            )}
+          </View>
+          <ClassicDeck index={right} otherIndex={left} width={dW} height={h} mirror />
+        </View>
+        <LibraryPanel visible={libraryOpen} onClose={() => setLibraryOpen(false)} decks={[left, right]} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingLeft: insets.left + 6, paddingRight: insets.right + 6 }]}>
       <LinearGradient colors={['#14141f', '#08080d', '#050508']} style={StyleSheet.absoluteFill} />
@@ -97,16 +166,7 @@ export default function Console() {
         <Text style={[styles.logo, compact && { fontSize: 18 }]}>
           Mr<Text style={{ color: colors.accent }}>Dj</Text>
         </Text>
-        {fourDecks && (
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <Pressable onPress={() => setLayerL(!layerL)} style={[styles.hBtn, { borderColor: deckColors[left] }]}>
-              <Text style={[styles.hBtnText, { color: deckColors[left] }]}>{layerL ? 'C' : 'A'}↔{layerL ? 'A' : 'C'}</Text>
-            </Pressable>
-            <Pressable onPress={() => setLayerR(!layerR)} style={[styles.hBtn, { borderColor: deckColors[right] }]}>
-              <Text style={[styles.hBtnText, { color: deckColors[right] }]}>{layerR ? 'D' : 'B'}↔{layerR ? 'B' : 'D'}</Text>
-            </Pressable>
-          </View>
-        )}
+        {layerButtons}
         <View style={{ flex: 1 }} />
         <Pressable testID="view3d" onPress={() => setView3d(!view3d)} style={[styles.hBtn, view3d && { borderColor: colors.accent, backgroundColor: `${colors.accent}33` }]}>
           <Text style={styles.hBtnText}>3D</Text>
@@ -125,16 +185,7 @@ export default function Console() {
         showsVerticalScrollIndicator={false}
         scrollEnabled={!compact}
       >
-        <View style={{ gap: compact ? 2 : 3 }}>
-          {[left, right].map((i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={[styles.waveLabel, { color: deckColors[i] }]}>{deckLetters[i]}</Text>
-              <Screen style={{ flex: 1 }}>
-                <ScrollingWaveform deck={engine.decks[i]} color={deckColors[i]} height={waveH} />
-              </Screen>
-            </View>
-          ))}
-        </View>
+        {waves(waveH)}
 
         <View style={view3d && !compact ? styles.tilt : undefined}>
         {compact ? (
