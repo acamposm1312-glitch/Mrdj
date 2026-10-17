@@ -22,6 +22,9 @@ import { colors, deckColors, deckLetters } from '../ui/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 const LIKED = '__liked__';
+const CLIENT_ID_RE = /^[0-9a-f]{32}$/i;
+// Sandboxed hosts (claude.ai pages) block requests to Spotify and change the redirect URL.
+const SANDBOXED = typeof location !== 'undefined' && /claudeusercontent\.com$|claude\.ai$/.test(location.hostname);
 
 export default function SpotifyScreen() {
   const t = useT();
@@ -30,6 +33,7 @@ export default function SpotifyScreen() {
   const connected = !!auth.refreshToken || (!!auth.accessToken && Date.now() < auth.expiresAt);
   const redirectUri = AuthSession.makeRedirectUri({ scheme: 'mrdj', path: 'spotify-auth' });
   const [draftId, setDraftId] = useState(spotifyClientId);
+  const idValid = CLIENT_ID_RE.test(draftId.trim());
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [open, setOpen] = useState<{ id: string; name: string } | null>(null);
   const [items, setItems] = useState<SpotifyTrack[]>([]);
@@ -124,13 +128,15 @@ export default function SpotifyScreen() {
           <Text style={styles.help}>
             {t.spotifyClientIdHelp} <Text style={{ color: colors.text }} selectable>{redirectUri}</Text>
           </Text>
+          {!!draftId && !idValid && <Text style={styles.error}>{t.spotifyBadId}</Text>}
+          {SANDBOXED && <Text style={styles.error}>{t.spotifySandboxed}</Text>}
           <Pressable
-            disabled={!draftId || !request}
+            disabled={!idValid || !request || SANDBOXED}
             onPress={() => {
               setSpotifyClientId(draftId);
               promptAsync();
             }}
-            style={[styles.green, (!draftId || !request) && { opacity: 0.4 }]}
+            style={[styles.green, (!idValid || !request || SANDBOXED) && { opacity: 0.4 }]}
           >
             <Text style={styles.greenText}>{t.connect}</Text>
           </Pressable>

@@ -49,6 +49,11 @@
         }
       ]
     ],
-    "owner": "acamposms-team"
+    "owner": "acamposms-team",
+    "extra": {
+      "eas": {
+        "projectId": "eca28823-ddea-42be-8912-88a1d2aed4b0"
+      }
+    }
   }
 }
