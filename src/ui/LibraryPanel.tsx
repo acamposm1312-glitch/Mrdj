@@ -133,7 +133,16 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
           <FlatList
             data={rows}
             keyExtractor={(r) => r.key}
-            ListEmptyComponent={<Text style={styles.empty}>{t.emptyLibrary}</Text>}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', gap: 12 }}>
+                <Text style={styles.empty}>{t.emptyLibrary}</Text>
+                {!crateId && (
+                  <Pressable testID="import-demo" disabled={!!progress} onPress={() => useLibrary.getState().importDemo()} style={[styles.btn, { backgroundColor: colors.accent }]}>
+                    <Text style={styles.btnText}>🎵 {t.loadDemo}</Text>
+                  </Pressable>
+                )}
+              </View>
+            }
             renderItem={({ item }) => {
               const tr = item.track;
               const harmonic = !!tr && isHarmonic(playingKey, tr.camelot);
