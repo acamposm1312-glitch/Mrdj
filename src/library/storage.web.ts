@@ -56,8 +56,18 @@ export async function loadJSON<T>(key: string): Promise<T | null> {
   return ((await tx<T | undefined>('json', 'readonly', (s) => s.get(key))) ?? null) as T | null;
 }
 
+type DownloadsApi = { save(r: { filename: string; data: Blob }): Promise<unknown> };
+type ClaudeHost = { use?: (name: string) => Promise<unknown> };
+
 export async function saveAndShareRecording(name: string, data: ArrayBuffer | Blob, mime: string) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  // Inside a claude.ai artifact, plain downloads are blocked: use the host's save dialog.
+  const host = (globalThis as { claude?: ClaudeHost }).claude;
+  const downloads = host?.use ? ((await host.use('downloads').catch(() => null)) as DownloadsApi | null) : null;
+  if (downloads) {
+    await downloads.save({ filename: name.replace(/\.m4a$/, '.mp4'), data: blob }).catch(() => {});
+    return name;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
