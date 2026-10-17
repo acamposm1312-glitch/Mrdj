@@ -42,7 +42,12 @@
       "expo-web-browser",
       "expo-localization",
       "expo-sharing",
-      "expo-router"
+      [
+        "expo-router",
+        {
+          "asyncRoutes": false
+        }
+      ]
     ]
   }
 }
