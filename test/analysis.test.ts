@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { analyzeChannels, isHarmonic } from '../src/audio/analysis.ts';
+import { analyzeChannels, applyBpmHint, isHarmonic } from '../src/audio/analysis.ts';
 import { synthTrack } from './synth.mjs';
 
 const cases = [
@@ -33,4 +33,12 @@ test('camelot compatibility', () => {
   assert.ok(isHarmonic('12B', '1B'));
   assert.ok(isHarmonic('8A', '8B'));
   assert.ok(!isHarmonic('8A', '10A'));
+});
+
+test('file name settles half/double time', () => {
+  assert.equal(applyBpmHint(87, 'MrDj Demo - Ruta 5 Sur (Drum and Bass 174).mp3'), 174);
+  assert.equal(applyBpmHint(87, 'Boom Bap 87 BPM.mp3'), 87);
+  assert.equal(applyBpmHint(87, 'some track.mp3'), 87);
+  assert.equal(applyBpmHint(140, 'Dubstep 70bpm.wav'), 70);
+  assert.equal(applyBpmHint(128, '01 - Artist - Song (Original Mix).mp3'), 128);
 });

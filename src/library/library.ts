@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { analyzeChannels } from '../audio/analysis';
+import { analyzeChannels, applyBpmHint } from '../audio/analysis';
 import type { HotCue } from '../audio/Deck';
 import { getEngine } from '../audio/engine';
 import { downloadFile, type DriveFile } from '../drive/drive';
@@ -47,6 +47,12 @@ export const DEMO_TRACKS = [
   'MrDj Demo - Martes de Hormigon (Tech House 125).mp3',
   'MrDj Demo - Perreo en Temuco (Reggaeton 95).mp3',
   'MrDj Demo - Piano de Medianoche (House 128).mp3',
+  'MrDj Demo - Fabrica Nocturna (Techno 130).mp3',
+  'MrDj Demo - Lluvia en Valdivia (Deep House 120).mp3',
+  'MrDj Demo - Volcan Llaima (Melodic Techno 124).mp3',
+  'MrDj Demo - Lago Villarrica (Progressive House 126).mp3',
+  'MrDj Demo - Cordillera (Trance 138).mp3',
+  'MrDj Demo - Ruta 5 Sur (Drum and Bass 174).mp3',
 ];
 const DEMO_BASE = Platform.OS === 'web' ? '/demo/' : 'https://mrdj-topaz.vercel.app/demo/';
 
@@ -73,7 +79,7 @@ export async function getWaveform(id: string): Promise<Waveform | null> {
   return w;
 }
 
-async function analyzeTrack(id: string, bytes?: ArrayBuffer) {
+async function analyzeTrack(id: string, bytes: ArrayBuffer | undefined, fileName: string) {
   const ctx = getEngine().ctx;
   const buffer = await ctx.decodeAudioData(bytes ?? (await readAudio(id)));
   const channels: Float32Array[] = [];
@@ -81,7 +87,7 @@ async function analyzeTrack(id: string, bytes?: ArrayBuffer) {
   const { analysis, waveform } = await analyzeChannels(channels, buffer.sampleRate);
   waveformCache.set(id, waveform);
   await saveJSON(id, waveform);
-  return analysis;
+  return { ...analysis, bpm: applyBpmHint(analysis.bpm, fileName) };
 }
 
 export const useLibrary = create<LibraryState>()(
@@ -130,7 +136,7 @@ export const useLibrary = create<LibraryState>()(
             };
             set((s) => ({ tracks: [track, ...s.tracks] }));
             try {
-              const analysis = await analyzeTrack(id);
+              const analysis = await analyzeTrack(id, undefined, f.name);
               track = { ...track, ...analysis, analyzed: true };
             } catch (e) {
               console.warn('analysis failed', f.name, e);
@@ -215,7 +221,7 @@ export const useLibrary = create<LibraryState>()(
             };
             set((s) => ({ tracks: [track, ...s.tracks] }));
             try {
-              track = { ...track, ...(await analyzeTrack(id, bytes)), analyzed: true };
+              track = { ...track, ...(await analyzeTrack(id, bytes, f.name)), analyzed: true };
             } catch (e) {
               console.warn('analysis failed', f.name, e);
             }
@@ -279,7 +285,7 @@ export const useLibrary = create<LibraryState>()(
               bpm: 0, firstBeat: 0, key: '', camelot: '', duration: 0,
             };
             try {
-              track = { ...track, ...(await analyzeTrack(id, bytes)), analyzed: true };
+              track = { ...track, ...(await analyzeTrack(id, bytes, name)), analyzed: true };
             } catch (e) {
               console.warn('analysis failed', name, e);
             }

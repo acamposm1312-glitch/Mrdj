@@ -309,6 +309,22 @@ export function isHarmonic(a: string, b: string): boolean {
   return la === lb && (diff === 1 || diff === 11);
 }
 
+/**
+ * Half/double-time is ambiguous from audio alone (drum & bass often reads as
+ * 87). When the file name states a tempo ("… 174", "174bpm") that is exactly
+ * double or half of what we measured, trust the name.
+ */
+export function applyBpmHint(bpm: number, fileName: string): number {
+  if (!bpm) return bpm;
+  const nums = (fileName.replace(/\.[a-z0-9]{2,5}$/i, '').match(/\d{2,3}(?:\.\d+)?/g) ?? []).map(Number);
+  for (const n of nums) {
+    if (n < 60 || n > 200) continue;
+    if (Math.abs(bpm * 2 - n) / n < 0.015) return bpm * 2;
+    if (Math.abs(bpm / 2 - n) / n < 0.015) return bpm / 2;
+  }
+  return bpm;
+}
+
 export function bpmFromTaps(taps: number[]): number {
   if (taps.length < 2) return 0;
   const intervals: number[] = [];

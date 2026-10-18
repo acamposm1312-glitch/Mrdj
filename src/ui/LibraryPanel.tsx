@@ -3,7 +3,7 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isHarmonic } from '../audio/analysis';
 import { getEngine, useEngine } from '../audio/engine';
-import { useLibrary } from '../library/library';
+import { DEMO_TRACKS, useLibrary } from '../library/library';
 import type { Track } from '../library/types';
 import { matchTrack } from '../spotify/spotify';
 import { useSettings, useT } from '../state/settings';
@@ -30,6 +30,11 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
   const [confirm, setConfirm] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
   const loadTargets = fourDecks ? [0, 1, 2, 3] : decks;
+  // demos added in an app update show up as a one-tap import
+  const missingDemos = useMemo(() => {
+    const have = new Set(tracks.map((x) => x.fileName));
+    return DEMO_TRACKS.filter((n) => !have.has(n)).length;
+  }, [tracks]);
 
   // the camelot key of whatever is playing guides harmonic suggestions
   const playingKey = engine.decks.find((d) => d.playing && d.track)?.track?.camelot ?? '';
@@ -104,6 +109,12 @@ export function LibraryPanel({ visible, onClose, decks }: { visible: boolean; on
                 <View style={[styles.barFill, { width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }]} />
               </View>
             </View>
+          )}
+
+          {tracks.length > 0 && missingDemos > 0 && !progress && (
+            <Pressable testID="import-more-demo" onPress={() => useLibrary.getState().importDemo()} style={[styles.btn, { alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.accent }]}>
+              <Text style={styles.btnText}>🎵 {t.moreDemos.replace('{n}', String(missingDemos))}</Text>
+            </Pressable>
           )}
 
           {!!loadError && <Text style={{ color: colors.rec, fontSize: 12 }}>{loadError}</Text>}
